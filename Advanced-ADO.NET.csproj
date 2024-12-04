@@ -1,0 +1,61 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup Label="Globals">
+    <SccProjectName>SAK</SccProjectName>
+    <SccProvider>SAK</SccProvider>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccLocalPath>SAK</SccLocalPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <AssemblyVersion>6.0.1</AssemblyVersion>
+    <FileVersion>6.0.1</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Attributes\**" />
+    <Compile Remove="CSRFValidation\**" />
+    <Compile Remove="DocumentDB\**" />
+    <EmbeddedResource Remove="Attributes\**" />
+    <EmbeddedResource Remove="CSRFValidation\**" />
+    <EmbeddedResource Remove="DocumentDB\**" />
+    <None Remove="Attributes\**" />
+    <None Remove="CSRFValidation\**" />
+    <None Remove="DocumentDB\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Antivirus.cs" />
+    <Compile Remove="Cache.cs" />
+    <Compile Remove="CommonMethods.cs" />
+    <Compile Remove="ConvertExtensionMethods.cs" />
+    <Compile Remove="CryptographyExtensionMethods.cs" />
+    <Compile Remove="Email.cs" />
+    <Compile Remove="ExcelReader.cs" />
+    <Compile Remove="FileAttribute.cs" />
+    <Compile Remove="Log.cs" />
+    <Compile Remove="MyDirectory.cs" />
+    <Compile Remove="MyFile.cs" />
+    <Compile Remove="MyImage.cs" />
+    <Compile Remove="Response.cs" />
+    <Compile Remove="XmlSerializableEntity.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="CommonLibrary.csproj.vspscc" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <PackageReference Include="Npgsql" Version="8.0.3" />
+    <PackageReference Include="System.Data.OleDb" Version="8.0.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\PublishProfiles\" />
+  </ItemGroup>
+ 
+</Project>
