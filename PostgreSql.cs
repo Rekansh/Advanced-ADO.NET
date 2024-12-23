@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace AdvancedADO
 {
-    public class PostgreSql : AbstractCommonSql
+    public class PostgreSql : CommonSql
     {
         #region Private Variable
         NpgsqlConnection sqlConn;

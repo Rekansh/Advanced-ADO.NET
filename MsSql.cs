@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace AdvancedADO
 {
-    public class MsSql : AbstractCommonSql
+    public class MsSql : CommonSql
     {
         #region Private Variable
         SqlConnection sqlConn;

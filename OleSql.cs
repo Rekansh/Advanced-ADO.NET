@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace AdvancedADO
 {
-    class OleSql : AbstractCommonSql
+    class OleSql : CommonSql
     {
         #region Private Variable 
         OleDbConnection sqlConn;

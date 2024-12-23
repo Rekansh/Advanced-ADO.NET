@@ -11,7 +11,7 @@ namespace AdvancedADO
     public delegate Task MapDataFunctionAsync<T>(int resultSet, T oEntityRef, IDataReader reader);
     public delegate void SqlNotificationOnSend(object sender, System.Data.SqlClient.SqlNotificationEventArgs e);
 
-    public abstract class AbstractCommonSql : ISql
+    public abstract class CommonSql : ISql
     {
         #region Private Variable
         private string _schema;
