@@ -7,7 +7,7 @@ namespace AdvancedADO
     /// Created By : Rekansh Patel
     /// Created On : 07/09/2019
     /// </summary>
-    public class CreateSql
+    public class SqlFactory
     {
         #region Constructor
         public IConfiguration Configuration { get; private set; }
@@ -16,7 +16,7 @@ namespace AdvancedADO
         /// Get configurations in constructor.
         /// </summary>
         /// <param name="configuration"></param>
-        public CreateSql(IConfiguration configuration)
+        public SqlFactory(IConfiguration configuration)
         {
             Configuration = configuration;
         }
@@ -76,7 +76,7 @@ namespace AdvancedADO
         #endregion
 
         #region Public Methods
-        public ISql CreateSqlInstance()
+        public ISql CreateInstance()
         {
             IPAddress = string.Empty;
             if (ProviderName.ToLower().Contains("system.data.sqlclient"))
@@ -89,15 +89,15 @@ namespace AdvancedADO
                 return new MsSql(ConnectionString, Schema);
         }
 
-        public ISql CreateSqlInstance(string connectionStringKey, string schema = "")
+        public ISql CreateInstance(string connectionStringKey, string schema = "")
         {
             IPAddress = string.Empty;
             ConnectionStringKey = connectionStringKey;
             Schema = schema;
-            return CreateSqlInstance();
+            return CreateInstance();
         }
 
-        public ISql CreateSqlInstance(string connectionStringKey, string ipAddress, string schema = "")
+        public ISql CreateInstance(string connectionStringKey, string ipAddress, string schema = "")
         {
             IPAddress = ipAddress;
             ConnectionStringKey = connectionStringKey;

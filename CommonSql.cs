@@ -16,21 +16,17 @@ namespace AdvancedADO
         #region Private Variable
         private string _schema;
         private string _connectionString;
-
+        private int _CommandTimeout = 30;
         protected List<SqlParameter> sqlParameters = new List<SqlParameter>();
         #endregion
 
         #region Public Properties
-        /// <summary>
-        /// Get & Set Connection String
-        /// </summary>
         public string ConnectionString
         {
             get { return _connectionString; }
             set { _connectionString = value; }
         }
 
-        private int _CommandTimeout = 30;
         public int CommandTimeout
         {
             get
@@ -42,9 +38,7 @@ namespace AdvancedADO
                 _CommandTimeout = value;
             }
         }
-        /// <summary>
-        /// Get & Set Connection String
-        /// </summary>
+        
         public string Schema
         {
             get
@@ -58,7 +52,7 @@ namespace AdvancedADO
         }
         #endregion
 
-        #region Abstract Methods
+        #region Abstract Sync Methods
         protected abstract void OpenConnection();
         protected abstract void CloseConnection();
         protected abstract void SetCommanProperties(string commandText, CommandType commandType);
@@ -91,6 +85,57 @@ namespace AdvancedADO
 
         public abstract void ExecuteNonQueryMultipleTransaction(string commandText, CommandType commandType);
         public abstract object ExecuteScalarMultipleTransaction(string commandText, CommandType commandType);
+        #endregion
+
+        #region Abstract Async Methods
+        protected abstract Task OpenConnectionAsync();
+
+        protected abstract Task CloseConnectionAsync();
+
+        public abstract Task ExecuteNonQueryAsync(string commandText, CommandType commandType);
+
+        public abstract Task ExecuteNonQueryWithTransactionAsync(string commandText, CommandType commandType);
+
+        public abstract Task<object> ExecuteScalarAsync(string commandText, CommandType commandType);
+
+        public abstract Task<object> ExecuteScalarWithTransactionAsync(string commandText, CommandType commandType);
+
+        public abstract Task<DataTable> ExecuteDataTableAsync(string commandText, CommandType commandType);
+
+        public abstract Task<DataSet> ExecuteDataSetAsync(string commandText, CommandType commandType);
+
+        public abstract IAsyncEnumerable<IDataReader> ExecuteEnumerableDataReaderAsync(string commandText, CommandType commandType);
+
+        public abstract Task<IDataReader> ExecuteDataReaderAsync(string commandText, CommandType commandType);
+
+        public abstract Task<List<ResultSet>> ExecuteDyanamicResultSetAsync(string commandText, CommandType commandType);
+
+        public abstract Task<List<dynamic>> ExecuteDyanamicListAsync(string commandText, CommandType commandType);
+
+        public abstract Task<T> ExecuteRecordAsync<T>(string commandText, CommandType commandType);
+
+        public abstract Task<T> ExecuteRecordAsync<T>(string commandText, CommandType commandType, Func<IDataReader, T> mapDataFunctionName);
+
+        public abstract IAsyncEnumerable<T> ExecuteEnumerableAsync<T>(string commandText, CommandType commandType);
+
+        public abstract IAsyncEnumerable<T> ExecuteEnumerableAsync<T>(string commandText, CommandType commandType, Func<IDataReader, T> mapDataFunctionName);
+
+        public abstract Task<T> ExecuteResultSetAsync<T>(string commandText, CommandType commandType, int resultSetCount, MapDataFunctionAsync<T> mapDataFunctionNameAsync);
+
+        public abstract Task<List<T>> ExecuteListAsync<T>(string commandText, CommandType commandType);
+
+        public abstract Task<List<T>> ExecuteListAsync<T>(string commandText, CommandType commandType, Func<IDataReader, T> mapDataFunctionName);
+
+        public abstract Task BeginTransactionAsync();
+
+        public abstract Task CommitTransactionAsync();
+
+        public abstract Task RollbackTransactionAsync();
+
+        public abstract Task ExecuteNonQueryMultipleTransactionAsync(string commandText, CommandType commandType);
+
+        public abstract Task<object> ExecuteScalarMultipleTransactionAsync(string commandText, CommandType commandType);
+
         #endregion
 
         #region Public Methods
@@ -144,76 +189,6 @@ namespace AdvancedADO
             return (T)entity;
         }
 
-        public List<T> FillList<T>(IDataReader reader)
-        {
-            List<T> oLists = new List<T>();
-            while (reader.Read())
-                oLists.Add(MapDataDynamically<T>(reader));
-            reader.NextResult();
-            return oLists;
-        }
-
-        public List<T> FillList<T>(IDataReader reader, Func<IDataReader, T> mapDataFunctionName)
-        {
-            List<T> oLists = new List<T>();
-            while (reader.Read())
-                oLists.Add(mapDataFunctionName(reader));
-            reader.NextResult();
-            return oLists;
-        }
-        #endregion
-
-        #region Private Methods
-
-        #endregion
-
-        #region Async Methods
-        protected abstract Task OpenConnectionAsync();
-
-        protected abstract Task CloseConnectionAsync();
-
-        public abstract Task ExecuteNonQueryAsync(string commandText, CommandType commandType);
-
-        public abstract Task ExecuteNonQueryWithTransactionAsync(string commandText, CommandType commandType);
-
-        public abstract Task<object> ExecuteScalarAsync(string commandText, CommandType commandType);
-
-        public abstract Task<object> ExecuteScalarWithTransactionAsync(string commandText, CommandType commandType);
-
-        public abstract Task<DataTable> ExecuteDataTableAsync(string commandText, CommandType commandType);
-
-        public abstract IAsyncEnumerable<IDataReader> ExecuteEnumerableDataReaderAsync(string commandText, CommandType commandType);
-
-        public abstract Task<IDataReader> ExecuteDataReaderAsync(string commandText, CommandType commandType);
-
-        public abstract Task<List<ResultSet>> ExecuteDyanamicResultSetAsync(string commandText, CommandType commandType);
-
-        public abstract Task<List<dynamic>> ExecuteDyanamicListAsync(string commandText, CommandType commandType);
-
-        public abstract Task<T> ExecuteRecordAsync<T>(string commandText, CommandType commandType);
-
-        public abstract Task<T> ExecuteRecordAsync<T>(string commandText, CommandType commandType, Func<IDataReader, T> mapDataFunctionName);
-
-        public abstract IAsyncEnumerable<T> ExecuteEnumerableAsync<T>(string commandText, CommandType commandType);
-
-        public abstract IAsyncEnumerable<T> ExecuteEnumerableAsync<T>(string commandText, CommandType commandType, Func<IDataReader, T> mapDataFunctionName);
-
-        public abstract Task<T> ExecuteResultSetAsync<T>(string commandText, CommandType commandType, int resultSetCount, MapDataFunctionAsync<T> mapDataFunctionNameAsync);
-
-        public abstract Task<List<T>> ExecuteListAsync<T>(string commandText, CommandType commandType);
-
-        public abstract Task<List<T>> ExecuteListAsync<T>(string commandText, CommandType commandType, Func<IDataReader, T> mapDataFunctionName);
-
-        public abstract Task BeginTransactionAsync();
-
-        public abstract Task CommitTransactionAsync();
-
-        public abstract Task RollbackTransactionAsync();
-
-        public abstract Task ExecuteNonQueryMultipleTransactionAsync(string commandText, CommandType commandType);
-
-        public abstract Task<object> ExecuteScalarMultipleTransactionAsync(string commandText, CommandType commandType);
-
         public Task<T> MapDataDynamicallyAsync<T>(IDataReader reader)
         {
             object entity = Activator.CreateInstance(typeof(T));
@@ -239,18 +214,6 @@ namespace AdvancedADO
             }
             return Task.FromResult(((T)entity));
         }
-
-        public async Task<List<T>> FillListAsync<T>(IDataReader reader)
-        {
-            List<T> oLists = new List<T>();
-            while (reader.Read())
-                oLists.Add(await MapDataDynamicallyAsync<T>(reader));
-            reader.NextResult();
-            return oLists;
-        }
-
-        public abstract Task<DataSet> ExecuteDataSetAsync(string commandText, CommandType commandType);
-
         #endregion
 
         #region SqlNotification

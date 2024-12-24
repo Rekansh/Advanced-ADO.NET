@@ -10,6 +10,7 @@ namespace AdvancedADO
         int CommandTimeout { get; set; }
         string Schema { get; set; }
 
+        #region Abstract Sync Methods
         void ExecuteNonQuery(string commandText, CommandType commandType);
         void ExecuteNonQueryWithTransaction(string commandText, CommandType commandType);
         object ExecuteScalar(string commandText, CommandType commandType);
@@ -31,23 +32,17 @@ namespace AdvancedADO
         List<T> ExecuteList<T>(string commandText, CommandType commandType);
         List<T> ExecuteList<T>(string commandText, CommandType commandType, Func<IDataReader, T> mapDataFunctionName);
 
+        #region multiple transaction handle
         void BeginTransaction();
         void CommitTransaction();
         void RollbackTransaction();
 
         void ExecuteNonQueryMultipleTransaction(string commandText, CommandType commandType);
         object ExecuteScalarMultipleTransaction(string commandText, CommandType commandType);
+        #endregion
+        #endregion
 
-        void AddParameter(string parameterName, object parameterValue);
-        void AddParameter(string parameterName, DbType dbType, ParameterDirection direction, object parameterValue);
-        void ClearParameter();
-        Dictionary<string, object> GetParameters();
-        List<T> FillList<T>(IDataReader reader);
-        List<T> FillList<T>(IDataReader reader, Func<IDataReader, T> mapDataFunctionName);
-
-        T MapDataDynamically<T>(IDataReader reader);
-
-        #region Async Methods
+        #region Abstract Async Methods
         Task ExecuteNonQueryAsync(string commandText, CommandType commandType);
 
         Task ExecuteNonQueryWithTransactionAsync(string commandText, CommandType commandType);
@@ -82,6 +77,7 @@ namespace AdvancedADO
 
         Task<List<T>> ExecuteListAsync<T>(string commandText, CommandType commandType, Func<IDataReader, T> mapDataFunctionName);
 
+        #region multiple transaction handle
         Task BeginTransactionAsync();
 
         Task CommitTransactionAsync();
@@ -91,13 +87,17 @@ namespace AdvancedADO
         Task ExecuteNonQueryMultipleTransactionAsync(string commandText, CommandType commandType);
 
         Task<object> ExecuteScalarMultipleTransactionAsync(string commandText, CommandType commandType);
-
-        Task<List<T>> FillListAsync<T>(IDataReader reader);
-
-        Task<T> MapDataDynamicallyAsync<T>(IDataReader reader);
-
+        #endregion
         #endregion
 
+        #region Public Methods
+        void AddParameter(string parameterName, object parameterValue);
+        void AddParameter(string parameterName, DbType dbType, ParameterDirection direction, object parameterValue);
+        void ClearParameter();
+        Dictionary<string, object> GetParameters();
+        T MapDataDynamically<T>(IDataReader reader);
+        Task<T> MapDataDynamicallyAsync<T>(IDataReader reader);
+        #endregion
 
         #region SqlNotification
         void SqlNotificationStart();
