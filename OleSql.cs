@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace AdvancedADO
 {
-    class OleSql : CommonSql
+    public class OleSql : CommonSql
     {
         #region Private Variable 
         OleDbConnection sqlConn;
@@ -31,6 +31,8 @@ namespace AdvancedADO
             Schema = schema;
         }
         #endregion
+
+        #region Sync Methods
 
         #region Connection Methods
         protected override void OpenConnection()
@@ -88,8 +90,8 @@ namespace AdvancedADO
         }
         #endregion
 
-        #region Single Trasaction Methods
-        public override void ExecuteNonQuery(string commandText, CommandType commandType)
+        #region Transaction Operation Methods
+        internal override void ExecuteNonQueryWithoutTransaction(string commandText, CommandType commandType)
         {
             try
             {
@@ -106,7 +108,7 @@ namespace AdvancedADO
             }
         }
 
-        public override void ExecuteNonQueryWithTransaction(string commandText, CommandType commandType)
+        internal override void ExecuteNonQueryWithSingleTransaction(string commandText, CommandType commandType)
         {
             int i = 0;
             try
@@ -136,7 +138,14 @@ namespace AdvancedADO
             }
         }
 
-        public override object ExecuteScalar(string commandText, CommandType commandType)
+        internal override void ExecuteNonQueryWithMultipleTransaction(string commandText, CommandType commandType)
+        {
+            SetCommanProperties(commandText, commandType);
+            sqlCmd.ExecuteNonQuery();
+            sqlCmd.Parameters.Clear();
+        }
+
+        internal override object ExecuteScalarWithoutTransaction(string commandText, CommandType commandType)
         {
             object result = null;
             try
@@ -155,7 +164,7 @@ namespace AdvancedADO
             return result;
         }
 
-        public override object ExecuteScalarWithTransaction(string commandText, CommandType commandType)
+        internal override object ExecuteScalarWithSingleTransaction(string commandText, CommandType commandType)
         {
             object result = null;
             int i = 0;
@@ -187,6 +196,60 @@ namespace AdvancedADO
             return result;
         }
 
+        internal override object ExecuteScalarWithMultipleTransaction(string commandText, CommandType commandType)
+        {
+            object result = null;
+            SetCommanProperties(commandText, commandType);
+            result = sqlCmd.ExecuteScalar();
+            sqlCmd.Parameters.Clear();
+            return result;
+        }
+
+        public override void BeginTransaction()
+        {
+            OpenConnection();
+            sqlTran = sqlConn.BeginTransaction();
+            sqlCmd = new OleDbCommand();
+            sqlCmd.Connection = sqlConn;
+            sqlCmd.Transaction = sqlTran;
+        }
+
+        public override void CommitTransaction()
+        {
+            try
+            {
+                sqlTran.Commit();
+            }
+            catch (Exception ex)
+            {
+                RollbackTransaction();
+                throw ex;
+            }
+            finally
+            {
+                sqlTran.Dispose();
+                sqlCmd.Dispose();
+                CloseConnection();
+            }
+        }
+
+        public override void RollbackTransaction()
+        {
+            try
+            {
+                sqlTran.Rollback();
+            }
+            finally
+            {
+                sqlTran.Dispose();
+                sqlCmd.Dispose();
+                CloseConnection();
+            }
+        }
+
+        #endregion
+
+        #region Data Retrieval Methods
         public override DataTable ExecuteDataTable(string commandText, CommandType commandType)
         {
             DataTable dtReturn = new DataTable();
@@ -229,6 +292,22 @@ namespace AdvancedADO
             return dsReturn;
         }
 
+        public override IDataReader ExecuteDataReader(string commandText, CommandType commandType)
+        {
+            try
+            {
+                sqlCmd = new OleDbCommand();
+                SetCommanProperties(commandText, commandType);
+                OpenConnection();
+                sqlCmd.Connection = sqlConn;
+                return sqlCmd.ExecuteReader(CommandBehavior.CloseConnection);
+            }
+            finally
+            {
+                sqlCmd.Dispose();
+            }
+        }
+
         public override IEnumerable<IDataReader> ExecuteEnumerableDataReader(string commandText, CommandType commandType)
         {
             try
@@ -250,87 +329,6 @@ namespace AdvancedADO
             }
         }
 
-        public override IDataReader ExecuteDataReader(string commandText, CommandType commandType)
-        {
-            try
-            {
-                sqlCmd = new OleDbCommand();
-                SetCommanProperties(commandText, commandType);
-                OpenConnection();
-                sqlCmd.Connection = sqlConn;
-                return sqlCmd.ExecuteReader(CommandBehavior.CloseConnection);
-            }
-            finally
-            {
-                sqlCmd.Dispose();
-            }
-        }
-
-        public override List<ResultSet> ExecuteDyanamicResultSet(string commandText, CommandType commandType)
-        {
-            List<ResultSet> Results = new List<ResultSet>();
-            try
-            {
-                sqlCmd = new OleDbCommand();
-                SetCommanProperties(commandText, commandType);
-                OpenConnection();
-                sqlCmd.Connection = sqlConn;
-                using (IDataReader reader = sqlCmd.ExecuteReader())
-                {
-                    int index = 0;
-                    do
-                    {
-                        ResultSet Result = new ResultSet();
-                        Result.ResultIndex = index;
-                        while (reader.Read())
-                        {
-                            IDictionary<string, object> expando = new ExpandoObject();
-                            for (int i = 0; i < reader.FieldCount; i++)
-                                expando.Add(reader.GetName(i), reader.GetValue(i));
-                            Result.ResultData.Add(expando);
-                        }
-                        index++;
-                        Results.Add(Result);
-                    }
-                    while (reader.NextResult());
-                }
-            }
-            finally
-            {
-                sqlCmd.Dispose();
-                CloseConnection();
-            }
-            return Results;
-        }
-
-        public override List<dynamic> ExecuteDyanamicList(string commandText, CommandType commandType)
-        {
-            List<dynamic> Results = new List<dynamic>();
-            try
-            {
-                sqlCmd = new OleDbCommand();
-                SetCommanProperties(commandText, commandType);
-                OpenConnection();
-                sqlCmd.Connection = sqlConn;
-                using (IDataReader reader = sqlCmd.ExecuteReader(CommandBehavior.CloseConnection))
-                {
-                    while (reader.Read())
-                    {
-                        IDictionary<string, object> expando = new ExpandoObject();
-                        for (int i = 0; i < reader.FieldCount; i++)
-                            expando.Add(reader.GetName(i), reader.GetValue(i));
-                        Results.Add(expando);
-                    }
-                }
-            }
-            finally
-            {
-                sqlCmd.Dispose();
-                CloseConnection();
-            }
-            return Results;
-        }
-
         public override T ExecuteRecord<T>(string commandText, CommandType commandType)
         {
             object entity = Activator.CreateInstance(typeof(T));
@@ -345,7 +343,7 @@ namespace AdvancedADO
                 {
                     while (reader.Read() && i < 1)
                     {
-                        entity = MapDataDynamically<T>(reader);
+                        entity = MapData<T>(reader);
                         i++;
                     }
                 }
@@ -396,7 +394,7 @@ namespace AdvancedADO
                 using (IDataReader reader = sqlCmd.ExecuteReader(CommandBehavior.CloseConnection))
                 {
                     while (reader.Read())
-                        yield return MapDataDynamically<T>(reader);
+                        yield return MapData<T>(reader);
                 }
             }
             finally
@@ -427,33 +425,6 @@ namespace AdvancedADO
             }
         }
 
-        public override T ExecuteResultSet<T>(string commandText, CommandType commandType, int resultSetCount, MapDataFunction<T> mapDataFunctionName)
-        {
-            try
-            {
-                var entity = Activator.CreateInstance<T>();
-                sqlCmd = new OleDbCommand();
-                SetCommanProperties(commandText, commandType);
-                OpenConnection();
-                sqlCmd.Connection = sqlConn;
-                using (IDataReader reader = sqlCmd.ExecuteReader())
-                {
-                    for (int resultSet = 0; resultSet < resultSetCount; resultSet++)
-                    {
-                        while (reader.Read())
-                            mapDataFunctionName(resultSet, entity, reader);
-                        reader.NextResult();
-                    }
-                }
-                return entity;
-            }
-            finally
-            {
-                sqlCmd.Dispose();
-                CloseConnection();
-            }
-        }
-
         public override List<T> ExecuteList<T>(string commandText, CommandType commandType)
         {
             List<T> oLists = new List<T>();
@@ -466,7 +437,7 @@ namespace AdvancedADO
                 using (IDataReader reader = sqlCmd.ExecuteReader(CommandBehavior.CloseConnection))
                 {
                     while (reader.Read())
-                        oLists.Add(MapDataDynamically<T>(reader));
+                        oLists.Add(MapData<T>(reader));
                 }
             }
             finally
@@ -500,66 +471,100 @@ namespace AdvancedADO
             return oLists;
         }
 
+        public override T ExecuteResultSet<T>(string commandText, CommandType commandType, int resultSetCount, MapDataFunction<T> mapDataFunctionName)
+        {
+            try
+            {
+                var entity = Activator.CreateInstance<T>();
+                sqlCmd = new OleDbCommand();
+                SetCommanProperties(commandText, commandType);
+                OpenConnection();
+                sqlCmd.Connection = sqlConn;
+                using (IDataReader reader = sqlCmd.ExecuteReader())
+                {
+                    for (int resultSet = 0; resultSet < resultSetCount; resultSet++)
+                    {
+                        while (reader.Read())
+                            mapDataFunctionName(resultSet, entity, reader);
+                        reader.NextResult();
+                    }
+                }
+                return entity;
+            }
+            finally
+            {
+                sqlCmd.Dispose();
+                CloseConnection();
+            }
+        }
+
+        public override List<dynamic> ExecuteDyanamicList(string commandText, CommandType commandType)
+        {
+            List<dynamic> Results = new List<dynamic>();
+            try
+            {
+                sqlCmd = new OleDbCommand();
+                SetCommanProperties(commandText, commandType);
+                OpenConnection();
+                sqlCmd.Connection = sqlConn;
+                using (IDataReader reader = sqlCmd.ExecuteReader(CommandBehavior.CloseConnection))
+                {
+                    while (reader.Read())
+                    {
+                        IDictionary<string, object> expando = new ExpandoObject();
+                        for (int i = 0; i < reader.FieldCount; i++)
+                            expando.Add(reader.GetName(i), reader.GetValue(i));
+                        Results.Add(expando);
+                    }
+                }
+            }
+            finally
+            {
+                sqlCmd.Dispose();
+                CloseConnection();
+            }
+            return Results;
+        }
+
+        public override List<ResultSet> ExecuteDyanamicResultSet(string commandText, CommandType commandType)
+        {
+            List<ResultSet> Results = new List<ResultSet>();
+            try
+            {
+                sqlCmd = new OleDbCommand();
+                SetCommanProperties(commandText, commandType);
+                OpenConnection();
+                sqlCmd.Connection = sqlConn;
+                using (IDataReader reader = sqlCmd.ExecuteReader())
+                {
+                    int index = 0;
+                    do
+                    {
+                        ResultSet Result = new ResultSet();
+                        Result.ResultIndex = index;
+                        while (reader.Read())
+                        {
+                            IDictionary<string, object> expando = new ExpandoObject();
+                            for (int i = 0; i < reader.FieldCount; i++)
+                                expando.Add(reader.GetName(i), reader.GetValue(i));
+                            Result.ResultData.Add(expando);
+                        }
+                        index++;
+                        Results.Add(Result);
+                    }
+                    while (reader.NextResult());
+                }
+            }
+            finally
+            {
+                sqlCmd.Dispose();
+                CloseConnection();
+            }
+            return Results;
+        }
+
         #endregion
 
-        #region Multiple Transaction Methods
-        public override void BeginTransaction()
-        {
-            OpenConnection();
-            sqlTran = sqlConn.BeginTransaction();
-            sqlCmd = new OleDbCommand();
-            sqlCmd.Connection = sqlConn;
-            sqlCmd.Transaction = sqlTran;
-        }
-
-        public override void CommitTransaction()
-        {
-            try
-            {
-                sqlTran.Commit();
-            }
-            catch (Exception ex)
-            {
-                RollbackTransaction();
-                throw ex;
-            }
-            finally
-            {
-                sqlTran.Dispose();
-                sqlCmd.Dispose();
-                CloseConnection();
-            }
-        }
-
-        public override void RollbackTransaction()
-        {
-            try
-            {
-                sqlTran.Rollback();
-            }
-            finally
-            {
-                sqlTran.Dispose();
-                sqlCmd.Dispose();
-                CloseConnection();
-            }
-        }
-
-        public override void ExecuteNonQueryMultipleTransaction(string commandText, CommandType commandType)
-        {
-            SetCommanProperties(commandText, commandType);
-            sqlCmd.ExecuteNonQuery();
-            sqlCmd.Parameters.Clear();
-        }
-
-        public override object ExecuteScalarMultipleTransaction(string commandText, CommandType commandType)
-        {
-            object result = null;
-            SetCommanProperties(commandText, commandType);
-            result = sqlCmd.ExecuteScalar();
-            sqlCmd.Parameters.Clear();
-            return result;
-        }
         #endregion
 
         #region Asynch Methods
@@ -600,8 +605,8 @@ namespace AdvancedADO
 
         #endregion
 
-        #region Single Trasaction Methods
-        public override async Task ExecuteNonQueryAsync(string commandText, CommandType commandType)
+        #region Transaction Operation Methods
+        internal override async Task ExecuteNonQueryWithoutTransactionAsync(string commandText, CommandType commandType)
         {
             try
             {
@@ -618,7 +623,7 @@ namespace AdvancedADO
             }
         }
 
-        public override async Task ExecuteNonQueryWithTransactionAsync(string commandText, CommandType commandType)
+        internal override async Task ExecuteNonQueryWithSingleTransactionAsync(string commandText, CommandType commandType)
         {
             int i = 0;
             try
@@ -648,7 +653,14 @@ namespace AdvancedADO
             }
         }
 
-        public override async Task<object> ExecuteScalarAsync(string commandText, CommandType commandType)
+        internal override async Task ExecuteNonQueryWithMultipleTransactionAsync(string commandText, CommandType commandType)
+        {
+            SetCommanProperties(commandText, commandType);
+            await sqlCmd.ExecuteNonQueryAsync();
+            sqlCmd.Parameters.Clear();
+        }
+
+        internal override async Task<object> ExecuteScalarWithoutTransactionAsync(string commandText, CommandType commandType)
         {
             object result = null;
             try
@@ -667,7 +679,7 @@ namespace AdvancedADO
             return result;
         }
 
-        public override async Task<object> ExecuteScalarWithTransactionAsync(string commandText, CommandType commandType)
+        internal override async Task<object> ExecuteScalarWithSingleTransactionAsync(string commandText, CommandType commandType)
         {
             object result = null;
             int i = 0;
@@ -699,6 +711,60 @@ namespace AdvancedADO
             return result;
         }
 
+        internal override async Task<object> ExecuteScalarWithMultipleTransactionAsync(string commandText, CommandType commandType)
+        {
+            object result = null;
+            SetCommanProperties(commandText, commandType);
+            result = await sqlCmd.ExecuteScalarAsync();
+            sqlCmd.Parameters.Clear();
+            return result;
+        }
+
+        public override async Task BeginTransactionAsync()
+        {
+            await OpenConnectionAsync();
+            sqlTran = (OleDbTransaction)await sqlConn.BeginTransactionAsync();
+            sqlCmd = new OleDbCommand();
+            sqlCmd.Connection = sqlConn;
+            sqlCmd.Transaction = sqlTran;
+        }
+
+        public override async Task CommitTransactionAsync()
+        {
+            try
+            {
+                await sqlTran.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                await RollbackTransactionAsync();
+                throw ex;
+            }
+            finally
+            {
+                await sqlTran.DisposeAsync();
+                await sqlCmd.DisposeAsync();
+                await CloseConnectionAsync();
+            }
+        }
+
+        public override async Task RollbackTransactionAsync()
+        {
+            try
+            {
+                await sqlTran.RollbackAsync();
+            }
+            finally
+            {
+                await sqlTran.DisposeAsync();
+                await sqlCmd.DisposeAsync();
+                await CloseConnectionAsync();
+            }
+        }
+
+        #endregion
+
+        #region Data Retrieval Methods
         public override async Task<DataTable> ExecuteDataTableAsync(string commandText, CommandType commandType)
         {
             DataTable dtReturn = new DataTable();
@@ -741,6 +807,22 @@ namespace AdvancedADO
             return dsReturn;
         }
 
+        public override async Task<IDataReader> ExecuteDataReaderAsync(string commandText, CommandType commandType)
+        {
+            try
+            {
+                sqlCmd = new OleDbCommand();
+                SetCommanProperties(commandText, commandType);
+                await OpenConnectionAsync();
+                sqlCmd.Connection = sqlConn;
+                return await sqlCmd.ExecuteReaderAsync(CommandBehavior.CloseConnection);
+            }
+            finally
+            {
+                await sqlCmd.DisposeAsync();
+            }
+        }
+
         public override async IAsyncEnumerable<IDataReader> ExecuteEnumerableDataReaderAsync(string commandText, CommandType commandType)
         {
             try
@@ -762,87 +844,6 @@ namespace AdvancedADO
             }
         }
 
-        public override async Task<IDataReader> ExecuteDataReaderAsync(string commandText, CommandType commandType)
-        {
-            try
-            {
-                sqlCmd = new OleDbCommand();
-                SetCommanProperties(commandText, commandType);
-                await OpenConnectionAsync();
-                sqlCmd.Connection = sqlConn;
-                return await sqlCmd.ExecuteReaderAsync(CommandBehavior.CloseConnection);
-            }
-            finally
-            {
-                await sqlCmd.DisposeAsync();
-            }
-        }
-
-        public override async Task<List<ResultSet>> ExecuteDyanamicResultSetAsync(string commandText, CommandType commandType)
-        {
-            List<ResultSet> Results = new List<ResultSet>();
-            try
-            {
-                sqlCmd = new OleDbCommand();
-                SetCommanProperties(commandText, commandType);
-                await OpenConnectionAsync();
-                sqlCmd.Connection = sqlConn;
-                using (IDataReader reader = await sqlCmd.ExecuteReaderAsync())
-                {
-                    int index = 0;
-                    do
-                    {
-                        ResultSet Result = new ResultSet();
-                        Result.ResultIndex = index;
-                        while (reader.Read())
-                        {
-                            IDictionary<string, object> expando = new ExpandoObject();
-                            for (int i = 0; i < reader.FieldCount; i++)
-                                expando.Add(reader.GetName(i), reader.GetValue(i));
-                            Result.ResultData.Add(expando);
-                        }
-                        index++;
-                        Results.Add(Result);
-                    }
-                    while (reader.NextResult());
-                }
-            }
-            finally
-            {
-                await sqlCmd.DisposeAsync();
-                await CloseConnectionAsync();
-            }
-            return Results;
-        }
-
-        public override async Task<List<dynamic>> ExecuteDyanamicListAsync(string commandText, CommandType commandType)
-        {
-            List<dynamic> Results = new List<dynamic>();
-            try
-            {
-                sqlCmd = new OleDbCommand();
-                SetCommanProperties(commandText, commandType);
-                await OpenConnectionAsync();
-                sqlCmd.Connection = sqlConn;
-                using (IDataReader reader = await sqlCmd.ExecuteReaderAsync(CommandBehavior.CloseConnection))
-                {
-                    while (reader.Read())
-                    {
-                        IDictionary<string, object> expando = new ExpandoObject();
-                        for (int i = 0; i < reader.FieldCount; i++)
-                            expando.Add(reader.GetName(i), reader.GetValue(i));
-                        Results.Add(expando);
-                    }
-                }
-            }
-            finally
-            {
-                await sqlCmd.DisposeAsync();
-                await CloseConnectionAsync();
-            }
-            return Results;
-        }
-
         public override async Task<T> ExecuteRecordAsync<T>(string commandText, CommandType commandType)
         {
             object entity = Activator.CreateInstance(typeof(T));
@@ -857,7 +858,7 @@ namespace AdvancedADO
                 {
                     while (reader.Read() && i < 1)
                     {
-                        entity = MapDataDynamicallyAsync<T>(reader);
+                        entity = MapDataAsync<T>(reader);
                         i++;
                     }
                 }
@@ -908,7 +909,7 @@ namespace AdvancedADO
                 using (IDataReader reader = await sqlCmd.ExecuteReaderAsync(CommandBehavior.CloseConnection))
                 {
                     while (reader.Read())
-                        yield return await MapDataDynamicallyAsync<T>(reader);
+                        yield return await MapDataAsync<T>(reader);
                 }
             }
             finally
@@ -939,33 +940,6 @@ namespace AdvancedADO
             }
         }
 
-        public override async Task<T> ExecuteResultSetAsync<T>(string commandText, CommandType commandType, int resultSetCount, MapDataFunctionAsync<T> mapDataFunctionName)
-        {
-            try
-            {
-                var entity = Activator.CreateInstance<T>();
-                sqlCmd = new OleDbCommand();
-                SetCommanProperties(commandText, commandType);
-                await OpenConnectionAsync();
-                sqlCmd.Connection = sqlConn;
-                using (IDataReader reader = await sqlCmd.ExecuteReaderAsync())
-                {
-                    for (int resultSet = 0; resultSet < resultSetCount; resultSet++)
-                    {
-                        while (reader.Read())
-                            await mapDataFunctionName(resultSet, entity, reader);
-                        reader.NextResult();
-                    }
-                }
-                return entity;
-            }
-            finally
-            {
-                await sqlCmd.DisposeAsync();
-                await CloseConnectionAsync();
-            }
-        }
-
         public override async Task<List<T>> ExecuteListAsync<T>(string commandText, CommandType commandType)
         {
             List<T> oLists = new List<T>();
@@ -978,7 +952,7 @@ namespace AdvancedADO
                 using (IDataReader reader = await sqlCmd.ExecuteReaderAsync(CommandBehavior.CloseConnection))
                 {
                     while (reader.Read())
-                        oLists.Add(await MapDataDynamicallyAsync<T>(reader));
+                        oLists.Add(await MapDataAsync<T>(reader));
                 }
             }
             finally
@@ -1012,67 +986,100 @@ namespace AdvancedADO
             return oLists;
         }
 
-        #endregion
-
-        #region Multiple Transaction Methods
-        public override async Task BeginTransactionAsync()
-        {
-            await OpenConnectionAsync();
-            sqlTran = (OleDbTransaction)await sqlConn.BeginTransactionAsync();
-            sqlCmd = new OleDbCommand();
-            sqlCmd.Connection = sqlConn;
-            sqlCmd.Transaction = sqlTran;
-        }
-
-        public override async Task CommitTransactionAsync()
+        public override async Task<T> ExecuteResultSetAsync<T>(string commandText, CommandType commandType, int resultSetCount, MapDataFunctionAsync<T> mapDataFunctionName)
         {
             try
             {
-                await sqlTran.CommitAsync();
-            }
-            catch (Exception ex)
-            {
-                await RollbackTransactionAsync();
-                throw ex;
+                var entity = Activator.CreateInstance<T>();
+                sqlCmd = new OleDbCommand();
+                SetCommanProperties(commandText, commandType);
+                await OpenConnectionAsync();
+                sqlCmd.Connection = sqlConn;
+                using (IDataReader reader = await sqlCmd.ExecuteReaderAsync())
+                {
+                    for (int resultSet = 0; resultSet < resultSetCount; resultSet++)
+                    {
+                        while (reader.Read())
+                            await mapDataFunctionName(resultSet, entity, reader);
+                        reader.NextResult();
+                    }
+                }
+                return entity;
             }
             finally
             {
-                await sqlTran.DisposeAsync();
                 await sqlCmd.DisposeAsync();
                 await CloseConnectionAsync();
             }
         }
 
-        public override async Task RollbackTransactionAsync()
+        public override async Task<List<dynamic>> ExecuteDyanamicListAsync(string commandText, CommandType commandType)
         {
+            List<dynamic> Results = new List<dynamic>();
             try
             {
-                await sqlTran.RollbackAsync();
+                sqlCmd = new OleDbCommand();
+                SetCommanProperties(commandText, commandType);
+                await OpenConnectionAsync();
+                sqlCmd.Connection = sqlConn;
+                using (IDataReader reader = await sqlCmd.ExecuteReaderAsync(CommandBehavior.CloseConnection))
+                {
+                    while (reader.Read())
+                    {
+                        IDictionary<string, object> expando = new ExpandoObject();
+                        for (int i = 0; i < reader.FieldCount; i++)
+                            expando.Add(reader.GetName(i), reader.GetValue(i));
+                        Results.Add(expando);
+                    }
+                }
             }
             finally
             {
-                await sqlTran.DisposeAsync();
                 await sqlCmd.DisposeAsync();
                 await CloseConnectionAsync();
             }
+            return Results;
         }
 
-        public override async Task ExecuteNonQueryMultipleTransactionAsync(string commandText, CommandType commandType)
+        public override async Task<List<ResultSet>> ExecuteDyanamicResultSetAsync(string commandText, CommandType commandType)
         {
-            SetCommanProperties(commandText, commandType);
-            await sqlCmd.ExecuteNonQueryAsync();
-            sqlCmd.Parameters.Clear();
+            List<ResultSet> Results = new List<ResultSet>();
+            try
+            {
+                sqlCmd = new OleDbCommand();
+                SetCommanProperties(commandText, commandType);
+                await OpenConnectionAsync();
+                sqlCmd.Connection = sqlConn;
+                using (IDataReader reader = await sqlCmd.ExecuteReaderAsync())
+                {
+                    int index = 0;
+                    do
+                    {
+                        ResultSet Result = new ResultSet();
+                        Result.ResultIndex = index;
+                        while (reader.Read())
+                        {
+                            IDictionary<string, object> expando = new ExpandoObject();
+                            for (int i = 0; i < reader.FieldCount; i++)
+                                expando.Add(reader.GetName(i), reader.GetValue(i));
+                            Result.ResultData.Add(expando);
+                        }
+                        index++;
+                        Results.Add(Result);
+                    }
+                    while (reader.NextResult());
+                }
+            }
+            finally
+            {
+                await sqlCmd.DisposeAsync();
+                await CloseConnectionAsync();
+            }
+            return Results;
         }
 
-        public override async Task<object> ExecuteScalarMultipleTransactionAsync(string commandText, CommandType commandType)
-        {
-            object result = null;
-            SetCommanProperties(commandText, commandType);
-            result = await sqlCmd.ExecuteScalarAsync();
-            sqlCmd.Parameters.Clear();
-            return result;
-        }
         #endregion
+
         #endregion
 
         #region SqlNotification
