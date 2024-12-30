@@ -5,7 +5,10 @@ The Advanced ADO.NET is a comprehensive library to help performe simpless databa
 
 ## Features
 - **ExecuteNonQuery / ExecuteNonQueryAsync**: This function use to perform insert, update, delete operation on database and return nothing.
-- **ExecuteScalar / ExecuteScalarAsync**: This function use to get single value like count, min, max, sum etc from database return as single value.
+- **ExecuteScalar / ExecuteScalarAsync**: This function use to get single value like count, min, max, sum etc from database or get scope_identity or auto incremented value after insert new record.
+- **BeginTransaction / BeginTransactionAsync**:This function use to begin transaction for performe multiple transaction so if all trasaction completed successfully then we can commit transaction else rollback transaction.
+- **CommitTransaction / CommitTransactionAsync**:This function use to commit transaction for performe multiple transaction so if all trasaction completed successfully.
+- **RollbackTransaction / RollbackTransactionAsync**:This function use to rollback transaction for performe multiple transaction so if any trasaction failed.
 - **ExecuteDataTable / ExecuteDataTableAsync**: This function get signle table data from database and return as DataTable.
 - **ExecuteDataSet / ExecuteDataSetAsync**: This function get multiple tables data from database and return as DataSet.
 - **ExecuteEnumerableDataReader / ExecuteEnumerableDataReaderAsync**: This function get single table data from database and return as Enumerable DataReader so make lazy data loading.
@@ -16,9 +19,6 @@ The Advanced ADO.NET is a comprehensive library to help performe simpless databa
 - **ExecuteResultSet / ExecuteResultSetAsync**: This function get data from multiple tables and return as multiple List of Entity.
 - **ExecuteDyanamicList / ExecuteDyanamicListAsync**:This function get data from single table and return as List of dynamic so no need to make entity class. This is useful for get data from database but not predicatable data.
 - **ExecuteDyanamicResultSet / ExecuteDyanamicResultSetAsync**:This function get data from multiple table and return as List of multiple dynamic result set so no need to make entity class. This is useful for get data from database but not predicatable data.
-- **BeginTransaction / BeginTransactionAsync**:This function use to begin transaction for performe multiple transaction so if all trasaction completed successfully then we can commit transaction else rollback transaction.
-- **CommitTransaction / CommitTransactionAsync**:This function use to commit transaction for performe multiple transaction so if all trasaction completed successfully.
-- **RollbackTransaction / RollbackTransactionAsync**:This function use to rollback transaction for performe multiple transaction so if any trasaction failed.
 
 ## Technologies Used
 - .NET, C#, ADO.NET
@@ -26,11 +26,34 @@ The Advanced ADO.NET is a comprehensive library to help performe simpless databa
 ## Installation
 
 ## Usage
-1. Navigate to `http://localhost:4400` in your web browser.
-2. Register a new account or log in with an existing account.
-3. Start adding your stock stransactions.
-4. Monitor your portfolio performance and view detailed analytics.
+1. ExecuteNonQuery Example
 
+2. ExecuteScalar Example
+
+3. Transaction Example - BeginTransaction, CommitTransaction, RollbackTransaction.
+
+4. ExecuteDataTable Example.
+
+5. ExecuteDataSet Example.
+
+6. ExecuteEnumerableDataReader Example.
+
+7. ExecuteDataReader Example.
+
+8. ExecuteDataTable Example.
+
+9. ExecuteRecord Example.
+
+10. ExecuteEnumerable Example.
+
+11. ExecuteList Example.
+
+12. ExecuteResultSet Example.
+
+13. ExecuteDyanamicList Example.
+
+14. ExecuteDyanamicResultSet Example.
+ 
 ## Contributing
 Contributions are welcome! Please fork the repository and submit a pull request with your changes.
 
